@@ -1,12 +1,21 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_file
-from werkzeug.utils import secure_filename
+from flask import (
+    Flask,
+    send_file,
+    request,
+    render_template,
+    redirect,
+    url_for,
+    session,
+)
 import os
-from datetime import date, datetime
+from datetime import datetime
 
 from database import get_session
 from models import Cliente, TipoRelatorio, EntradaRelatorio
+
 from reports_ultrassom import generate_ultrassom_report
 from config_relatorios import get_output_dir
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"  # TODO trocar depois
