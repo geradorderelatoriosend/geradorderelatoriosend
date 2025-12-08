@@ -1,66 +1,87 @@
 {% extends "base.html" %}
-{% block title %}Relatório de Ultrassom (US){% endblock %}
+{% block title %}Relatório Ultrassom{% endblock %}
 
 {% block content %}
-  <h2>Novo Relatório de Ultrassom (US)</h2>
+<h2>Relatório Ultrassom (US)</h2>
 
-  {% if error %}
-    <p style="color: red;">{{ error }}</p>
-  {% endif %}
+<form method="POST" enctype="multipart/form-data">
 
-  <form method="post" enctype="multipart/form-data">
-    <label>Cliente:</label>
-    <select name="cliente_id" required>
-      <option value="">Selecione...</option>
-      {% for c in clientes %}
-        <option value="{{ c.id }}">{{ c.razao_social }}</option>
-      {% endfor %}
-    </select>
-    <br><br>
+  <label>Número do Relatório *</label>
+  <input type="text" name="NUMRELATORIO" required>
 
-    <label>Número do Relatório:</label>
-    <input type="text" name="numrel" required><br><br>
+  <label>Empresa *</label>
+  <input type="text" name="EMPRESA" required>
 
-    <label>Peça Ensaiada:</label>
-    <input type="text" name="peca"><br><br>
+  <label>Equipamento</label>
+  <input type="text" name="EQUIPAMENTO">
 
-    <label>Nº OP / Desenho:</label>
-    <input type="text" name="num_desenho"><br><br>
+  <label>Nº de Série</label>
+  <input type="text" name="NUM_SERIE">
 
-    <label>Quantidade:</label>
-    <input type="text" name="quantidade"><br><br>
+  <label>Quantidade</label>
+  <input type="number" name="QTDE">
 
-    <label>Local do Ensaio:</label>
-    <input type="text" name="local_insp"><br><br>
+  <label>Data da Inspeção *</label>
+  <input type="date" name="DATA_INSP" required>
 
-    <label>Data do Ensaio:</label>
-    <input type="date" name="data_insp" required><br><br>
 
-    <label>Material:</label>
-    <input type="text" name="material"><br><br>
+  <label>Selecionar Foto Capa (FOTO_1)</label>
+  <input type="file" name="FOTO_1" accept="image/*">
 
-    <label>Condição da Superfície:</label>
-    <input type="text" name="cond_superficial"><br><br>
 
-    <label>Região Inspecionada:</label>
-    <input type="text" name="regiao_insp"><br><br>
+  <hr>
+  <h3>Resultado do Laudo</h3>
 
-    <label>Espessura:</label>
-    <input type="text" name="espessura"><br><br>
+  <label>Laudo *</label>
+  <select name="LAUDO" id="campo_laudo" required>
+      <option value="A">Aprovado</option>
+      <option value="R">Reprovado</option>
+  </select>
 
-    <label>Foto 1 (Capa):</label>
-    <input type="file" name="foto1" accept="image/*"><br><br>
+  <!-- CAMPOS MOSTRADOS SOMENTE PARA REPROVADO -->
+  <div id="campos_reprovado" style="display:none">
 
-    <label>Foto 2:</label>
-    <input type="file" name="foto2" accept="image/*"><br><br>
+      <label>Tipo da Descontinuidade ({{TIPO_DESC}})</label>
+      <input type="text" name="TIPO_DESC">
 
-    <label>Foto 3:</label>
-    <input type="file" name="foto3" accept="image/*"><br><br>
+      <label>Localização ({{LOC_DESC}})</label>
+      <input type="text" name="LOC_DESC">
 
-    <button type="submit">Gerar Relatório</button>
-  </form>
+      <label>Dimensão ({{DIM_DESC}})</label>
+      <input type="text" name="DIM_DESC">
 
-  <p style="margin-top: 16px;">
-    <a href="{{ url_for('dashboard') }}">Cancelar e voltar</a>
-  </p>
+  </div>
+
+
+  <hr>
+  <h3>Fotos do Ensaio</h3>
+
+  <label>Foto US 1 (FOTO_2)</label>
+  <input type="file" name="FOTO_2" accept="image/*">
+
+  <label>Foto US 2 (FOTO_3)</label>
+  <input type="file" name="FOTO_3" accept="image/*">
+
+
+  <br><br>
+  <button type="submit" class="btn btn-primary">Gerar Relatório</button>
+
+</form>
+
+<script>
+const selectLaudo = document.getElementById('campo_laudo');
+const camposRep = document.getElementById('campos_reprovado');
+
+function atualizarCampos() {
+    if(selectLaudo.value === 'R'){
+        camposRep.style.display = 'block';
+    } else {
+        camposRep.style.display = 'none';
+    }
+}
+
+selectLaudo.addEventListener('change', atualizarCampos);
+window.onload = atualizarCampos;
+</script>
+
 {% endblock %}
