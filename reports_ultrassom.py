@@ -1,5 +1,4 @@
 import os
-import json
 from datetime import date
 
 from docx import Document
@@ -70,7 +69,7 @@ def _montar_mapping(dados: dict) -> dict:
     return mapping
 
 
-def _carregar_capa(template_path: str, mapping: dict) -> Document | None:
+def _carregar_capa(template_path: str, mapping: dict):
     """
     Tenta carregar um template de capa na mesma pasta do template principal,
     usando a lista CAPA_TEMPLATE_CANDIDATES. Se não encontrar, retorna None.
