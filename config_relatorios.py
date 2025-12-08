@@ -53,3 +53,58 @@ def set_output_dir(path: str) -> None:
 
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
+
+from datetime import date
+import os
+import shutil
+from reports_combo import generate_end_combo_report
+
+def gerar_relatorio_principal(caminho_final: str) -> str:
+    """
+    Função usada pela API Flask no Render.
+    Gera um relatório END simples e copia para `caminho_final`
+    """
+
+    # Dados mínimos só pra passar nos templates
+    hoje = date.today()
+    numrel = hoje.strftime("%Y%m%d")
+
+    dados = {
+        "NUMRELATORIO": numrel,
+        "DATA_INSP": hoje,
+        "PECA_INSP": "Item Teste",
+        "NUM_DESENHO": "",
+        "QUANTIDADE": "",
+        "LOCAL_INSP": "",
+        "EMPRESA": "Teste Render",
+        "ENDEREÇO": "",
+        "BAIRRO": "",
+        "CIDADE": "",
+        "ESTADO": "",
+        "CEP": "",
+        "CONTATO": "",
+        "DDD": "",
+        "FONE": "",
+        "EMAIL": "",
+    }
+
+    # só com LP para evitar erro
+    incluir_lp = True
+    incluir_pm = False
+    incluir_us = False
+
+    docx_path, _ = generate_end_combo_report(
+        dados_comuns=dados,
+        incluir_lp=incluir_lp,
+        incluir_pm=incluir_pm,
+        incluir_us=incluir_us,
+        dados_lp=None,
+        dados_pm=None,
+        dados_us=None,
+        foto_capa=None,
+    )
+
+    os.makedirs(os.path.dirname(caminho_final), exist_ok=True)
+    shutil.copy2(docx_path, caminho_final)
+
+    return caminho_final
