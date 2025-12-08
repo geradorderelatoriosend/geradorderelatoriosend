@@ -1,35 +1,10 @@
 {% extends "base.html" %}
-{% block title %}RL Metais - Início{% endblock %}
-
 {% block content %}
-  <div class="logo">
-    <!-- Aqui depois podemos trocar por imagem do seu logo -->
-    <span>RL Metais - Relatórios END</span>
-  </div>
 
-  <div class="mb-3">
-    <button
-      type="button"
-      class="btn-menu"
-      onclick="window.location.href='{{ url_for('clientes_form') }}'"
-    >
-      Cadastrar / Editar Cliente
-    </button>
+<h2>Menu principal</h2>
 
-    <button
-      type="button"
-      class="btn-menu"
-      onclick="window.location.href='{{ url_for('relatorio_end_form') }}'"
-    >
-      Novo Relatório END (LP / PM / US)
-    </button>
+<a href="/clientes">Cadastro de Clientes</a><br><br>
 
-    <button
-      type="button"
-      class="btn-menu"
-      onclick="window.location.href='{{ url_for('config_pasta_relatorios') }}'"
-    >
-      Definir pasta dos relatórios
-    </button>
-  </div>
+<a href="/relatorio/novo">Novo Relatório</a><br><br>
+
 {% endblock %}
