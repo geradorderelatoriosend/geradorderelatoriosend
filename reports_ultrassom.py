@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import date
 
 from docx import Document
@@ -11,9 +12,13 @@ from utils_docx import (
     date_por_extenso,
 )
 
-
-# Nome do arquivo de template da CAPA do relatório de Ultrassom
-CAPA_US_TEMPLATE_NAME = "CAPA_US_TEMPLATE.docx"
+# possíveis nomes de template de capa para US, na mesma pasta do US_TEMPLATE.docx
+CAPA_TEMPLATE_CANDIDATES = [
+    "CAPA_US_TEMPLATE.docx",
+    "CAPA_US.docx",
+    "CAPA_TEMPLATE.docx",
+    "CAPA.docx",
+]
 
 
 def _montar_mapping(dados: dict) -> dict:
@@ -29,7 +34,6 @@ def _montar_mapping(dados: dict) -> dict:
         dados_limpos["DATA_INSP"] = format_date_br(data_insp)
         dados_limpos["DATA_INSP_EXTENSO"] = date_por_extenso(data_insp)
     elif data_insp:
-        # Se vier string, mantém, mas garante DATA_INSP_EXTENSO vazio
         dados_limpos["DATA_INSP"] = str(data_insp)
         dados_limpos["DATA_INSP_EXTENSO"] = ""
     else:
@@ -53,7 +57,6 @@ def _montar_mapping(dados: dict) -> dict:
 
     dados_limpos["CONCLUSAO"] = conclusao
 
-    # Monta mapping de {{CHAVE}} -> valor
     mapping: dict[str, str] = {}
     for k, v in dados_limpos.items():
         # Fotos não entram como texto
@@ -62,21 +65,35 @@ def _montar_mapping(dados: dict) -> dict:
         placeholder = "{{" + k + "}}"
         mapping[placeholder] = "" if v is None else str(v)
 
-    # Também mapeia {{CONCLUSAO}} explicitamente (por garantia)
     mapping["{{CONCLUSAO}}"] = conclusao
 
     return mapping
 
 
+def _carregar_capa(template_path: str, mapping: dict) -> Document | None:
+    """
+    Tenta carregar um template de capa na mesma pasta do template principal,
+    usando a lista CAPA_TEMPLATE_CANDIDATES. Se não encontrar, retorna None.
+    """
+    base_dir = os.path.dirname(template_path)
+
+    for nome in CAPA_TEMPLATE_CANDIDATES:
+        caminho = os.path.join(base_dir, nome)
+        if os.path.exists(caminho):
+            doc_capa = Document(caminho)
+            replace_placeholders(doc_capa, mapping)
+            return doc_capa
+
+    return None
+
+
 def generate_ultrassom_report(dados: dict, template_path: str, output_dir: str) -> str:
     """
-    Gera o relatório de Ultrassom (US) com CAPA + LAUDO em um único arquivo .docx.
-
-    - CAPA: CAPA_US_TEMPLATE.docx
-    - LAUDO: template_path (US_TEMPLATE.docx)
+    Gera o relatório de Ultrassom (US) com CAPA + LAUDO em um único arquivo .docx,
+    se existir template de capa. Caso contrário, gera somente o laudo (comportamento antigo).
     """
     if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Template do laudo não encontrado: {template_path}")
+        raise FileNotFoundError(f"Template não encontrado: {template_path}")
 
     # Garante diretório de saída
     os.makedirs(output_dir, exist_ok=True)
@@ -85,27 +102,17 @@ def generate_ultrassom_report(dados: dict, template_path: str, output_dir: str) 
     if not numrel:
         raise ValueError("O campo NUMRELATORIO é obrigatório.")
 
-    # Mapping base para placeholders (cliente, peça, datas, etc.)
+    # monta mapping com datas e conclusão
     mapping = _montar_mapping(dados)
 
-    # ---------------------------------------------------
-    # 1) Monta CAPA (se template existir)
-    # ---------------------------------------------------
-    base_dir = os.path.dirname(template_path)
-    capa_path = os.path.join(base_dir, CAPA_US_TEMPLATE_NAME)
+    # ---------------------- CAPA (opcional) ----------------------
+    doc_capa = _carregar_capa(template_path, mapping)
 
-    doc_capa = None
-    if os.path.exists(capa_path):
-        doc_capa = Document(capa_path)
-        replace_placeholders(doc_capa, mapping)
-
-    # ---------------------------------------------------
-    # 2) Monta LAUDO (US_TEMPLATE)
-    # ---------------------------------------------------
+    # ---------------------- LAUDO (US_TEMPLATE) -------------------
     doc_laudo = Document(template_path)
     replace_placeholders(doc_laudo, mapping)
 
-    # Inserção das fotos no laudo
+    # Inserção das fotos com tamanhos adequados
     foto1 = dados.get("FOTO_1")
     if foto1:
         inserir_foto_por_placeholder(doc_laudo, "{{FOTO_1}}", foto1, height_cm=10.0)
@@ -118,23 +125,15 @@ def generate_ultrassom_report(dados: dict, template_path: str, output_dir: str) 
     if foto3:
         inserir_foto_por_placeholder(doc_laudo, "{{FOTO_3}}", foto3, height_cm=4.0)
 
-    # ---------------------------------------------------
-    # 3) Junta CAPA + LAUDO em um único documento
-    # ---------------------------------------------------
-    if doc_capa is not None:
-        composer = Composer(doc_capa)
-        composer.append(doc_laudo)
-        doc_final = doc_capa
-    else:
-        # Se não houver template de capa, usa apenas o laudo (comportamento antigo)
-        doc_final = doc_laudo
-
+    # ---------------------- JUNÇÃO CAPA + LAUDO -------------------
     file_name = f"Relatório {numrel}-US.docx"
     output_path = os.path.join(output_dir, file_name)
 
     if doc_capa is not None:
+        composer = Composer(doc_capa)
+        composer.append(doc_laudo)
         composer.save(output_path)
     else:
-        doc_final.save(output_path)
+        doc_laudo.save(output_path)
 
     return output_path
