@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Painel - RL Metais{% endblock %}
+
+{% block content %}
+  <h2>Painel de Relatórios END</h2>
+  <p>
+    Bem-vindo(a)! Aqui você poderá gerar relatórios END pela nuvem.
+    Nesta primeira versão, temos um botão de teste para gerar um relatório
+    de demonstração.
+  </p>
+
+  <div class="grid-buttons" style="margin-top: 24px;">
+    <form method="post" action="{{ url_for('gerar_relatorio') }}">
+      <button type="submit" class="btn btn-block">
+        Gerar Relatório END (DEMO)
+      </button>
+    </form>
+
+    <!-- Lugares reservados para future features -->
+    <button class="btn btn-block secondary" disabled>
+      Novo Relatório LP (em breve)
+    </button>
+    <button class="btn btn-block secondary" disabled>
+      Novo Relatório PM (em breve)
+    </button>
+    <button class="btn btn-block secondary" disabled>
+      Novo Relatório US (em breve)
+    </button>
+  </div>
+{% endblock %}
