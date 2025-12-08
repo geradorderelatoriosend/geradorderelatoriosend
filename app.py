@@ -132,6 +132,13 @@ def clientes_form():
     finally:
         session_db.close()
 
+@app.route("/relatorio/download/<nome_arquivo>")
+@login_required
+def download_relatorio(nome_arquivo):
+    output_dir = get_output_dir()
+    file_path = os.path.join(output_dir, nome_arquivo)
+    return send_file(file_path, as_attachment=True)
+
 
 @app.route("/logout")
 def logout():

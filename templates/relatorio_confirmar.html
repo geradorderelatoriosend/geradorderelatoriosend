@@ -6,7 +6,12 @@
   <p>O arquivo foi criado e salvo na pasta configurada.</p>
 
   {% if caminho_docx %}
-    <p>Nome do arquivo: <strong>{{ caminho_docx }}</strong></p>
+  <p>
+    Nome do arquivo:
+    <a href="{{ url_for('download_relatorio', nome_arquivo=caminho_docx) }}">
+      <strong>{{ caminho_docx }}</strong>
+    </a>
+  </p>
   {% endif %}
 
   <p style="margin-top: 16px;">
