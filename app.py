@@ -36,12 +36,8 @@ def gerar_relatorio():
         # no caminho: 'caminho_final'.
         # -------------------------------------------------------------
 
-        # SIMULACAO TEMPORARIA (REMOVA ESTE BLOCO APÓS INSERIR SUA FUNÇÃO REAL):
-        from docx import Document
-        doc = Document()
-        doc.add_heading('Relatório Gerado na Nuvem (SUCESSO!)', 0)
-        doc.add_paragraph('Substitua este código pela sua lógica real.')
-        doc.save(caminho_final) 
+        # Código REAL de Geração:
+        config_relatorios.gerar_relatorio_principal(caminho_final)
         
     except Exception as e:
         return f"Erro na Geração do Relatório: {e}", 500
