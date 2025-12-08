@@ -77,8 +77,7 @@ def dashboard():
 @app.route("/clientes")
 @login_required
 def clientes_form():
-    # Por enquanto, só pra não quebrar.
-    return "<h3>Tela de Cadastro / Edição de Cliente (em construção)</h3>"
+    return render_template("clientes.html")
 
 
 @app.route("/relatorio_end")
