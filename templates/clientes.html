@@ -25,13 +25,21 @@
   }
 
   .cliente-item {
+    display: block;
     padding: 4px 6px;
     border-bottom: 1px solid #e0e0e0;
     cursor: default;
+    text-decoration: none;
+    color: #000000;
+    font-size: 13px;
   }
 
   .cliente-item:hover {
     background-color: #f0f0f0;
+  }
+
+  .cliente-item.selected {
+    background-color: #d0e0ff;
   }
 
   .clientes-form {
@@ -41,57 +49,43 @@
     font-size: 13px;
   }
 
-  .field-row {
-    display: grid;
-    grid-template-columns: 110px 1fr 90px 120px;
-    gap: 8px;
+  .field-row,
+  .field-row-2,
+  .field-row-3,
+  .field-row-cep,
+  .field-row-telefone {
     margin-bottom: 6px;
+    display: grid;
     align-items: center;
+    gap: 8px;
+  }
+
+  .field-row {
+    grid-template-columns: 110px 1fr 60px 1fr;
   }
 
   .field-row-2 {
-    display: grid;
     grid-template-columns: 110px 1fr;
-    gap: 8px;
-    margin-bottom: 6px;
-    align-items: center;
   }
 
   .field-row-3 {
-    display: grid;
-    grid-template-columns: 110px 120px 60px 1fr;
-    gap: 8px;
-    margin-bottom: 6px;
-    align-items: center;
+    grid-template-columns: 110px 1fr 60px 1fr;
   }
 
   .field-row-cep {
-    display: grid;
     grid-template-columns: 110px 120px 40px 1fr;
-    gap: 8px;
-    margin-bottom: 6px;
-    align-items: center;
   }
 
   .field-row-telefone {
-    display: grid;
     grid-template-columns: 110px 60px 1fr;
-    gap: 8px;
-    margin-bottom: 6px;
-    align-items: center;
   }
 
-  .field-row label {
+  label {
     font-size: 12px;
   }
 
-  .field-row input,
-  .field-row-2 input,
-  .field-row-3 input,
-  .field-row-cep input,
-  .field-row-telefone input,
-  .field-row-cep select,
-  .field-row-3 select {
+  input,
+  select {
     font-size: 12px;
     padding: 3px 4px;
     border: 1px solid #a0a0a0;
@@ -115,7 +109,6 @@
   .btn-small:hover {
     background-color: #d4d4d4;
   }
-
 </style>
 {% endblock %}
 
@@ -129,92 +122,188 @@
     <div class="clientes-list">
       <h4>Clientes</h4>
 
-      <!-- Por enquanto, estático só para visual. Depois ligamos no banco. -->
-      <div class="cliente-item">RL Metais - Exemplo</div>
-      <div class="cliente-item">Empresa Teste 1</div>
-      <div class="cliente-item">Empresa Teste 2</div>
+      {% for c in clientes %}
+        <a
+          href="{{ url_for('clientes_form', cliente_id=c.id) }}"
+          class="cliente-item {% if cliente_atual and c.id == cliente_atual.id %}selected{% endif %}"
+        >
+          {{ c.razao_social }}
+        </a>
+      {% else %}
+        <div class="cliente-item">Nenhum cliente cadastrado</div>
+      {% endfor %}
     </div>
 
     <!-- LADO DIREITO: FORMULÁRIO -->
     <div class="clientes-form">
-      <!-- Linha: Razão Social -->
-      <div class="field-row-2">
-        <label for="razao_social">Razão Social</label>
-        <input type="text" id="razao_social" name="razao_social" />
-      </div>
+      <form method="post">
+        <!-- ID oculto para edição -->
+        <input
+          type="hidden"
+          name="cliente_id"
+          value="{{ cliente_atual.id if cliente_atual else '' }}"
+        />
 
-      <!-- Linha: Contato -->
-      <div class="field-row-2">
-        <label for="contato">Contato</label>
-        <input type="text" id="contato" name="contato" />
-      </div>
+        <!-- Razão Social -->
+        <div class="field-row-2">
+          <label for="razao_social">Razão Social</label>
+          <input
+            type="text"
+            id="razao_social"
+            name="razao_social"
+            value="{{ cliente_atual.razao_social if cliente_atual else '' }}"
+          />
+        </div>
 
-      <!-- Linha: CNPJ / IE -->
-      <div class="field-row">
-        <label for="cnpj">CNPJ</label>
-        <input type="text" id="cnpj" name="cnpj" />
+        <!-- Contato -->
+        <div class="field-row-2">
+          <label for="contato">Contato</label>
+          <input
+            type="text"
+            id="contato"
+            name="contato"
+            value="{{ cliente_atual.contato if cliente_atual else '' }}"
+          />
+        </div>
 
-        <label for="ie">IE</label>
-        <input type="text" id="ie" name="ie" />
-      </div>
+        <!-- CNPJ / IE -->
+        <div class="field-row">
+          <label for="cnpj">CNPJ</label>
+          <input
+            type="text"
+            id="cnpj"
+            name="cnpj"
+            value="{{ cliente_atual.cnpj if cliente_atual else '' }}"
+          />
 
-      <!-- Linha: Rua / Número -->
-      <div class="field-row">
-        <label for="rua">Rua</label>
-        <input type="text" id="rua" name="rua" />
+          <label for="ie">IE</label>
+          <input
+            type="text"
+            id="ie"
+            name="ie"
+            value="{{ cliente_atual.ie if cliente_atual else '' }}"
+          />
+        </div>
 
-        <label for="numero">Número</label>
-        <input type="text" id="numero" name="numero" />
-      </div>
+        <!-- Rua / Número -->
+        <div class="field-row">
+          <label for="rua">Rua</label>
+          <input
+            type="text"
+            id="rua"
+            name="rua"
+            value="{{ cliente_atual.rua if cliente_atual else '' }}"
+          />
 
-      <!-- Linha: Bairro / Cidade -->
-      <div class="field-row">
-        <label for="bairro">Bairro</label>
-        <input type="text" id="bairro" name="bairro" />
+          <label for="numero">Número</label>
+          <input
+            type="text"
+            id="numero"
+            name="numero"
+            value="{{ cliente_atual.numero if cliente_atual else '' }}"
+          />
+        </div>
 
-        <label for="cidade">Cidade</label>
-        <input type="text" id="cidade" name="cidade" />
-      </div>
+        <!-- Bairro / Cidade -->
+        <div class="field-row">
+          <label for="bairro">Bairro</label>
+          <input
+            type="text"
+            id="bairro"
+            name="bairro"
+            value="{{ cliente_atual.bairro if cliente_atual else '' }}"
+          />
 
-      <!-- Linha: UF / CEP -->
-      <div class="field-row-cep">
-        <label for="uf">UF</label>
-        <select id="uf" name="uf">
-          <option value="">Selecionar</option>
-          <option>SP</option>
-          <option>MG</option>
-          <option>RJ</option>
-          <option>PR</option>
-          <!-- (depois podemos preencher todas) -->
-        </select>
+          <label for="cidade">Cidade</label>
+          <input
+            type="text"
+            id="cidade"
+            name="cidade"
+            value="{{ cliente_atual.cidade if cliente_atual else '' }}"
+          />
+        </div>
 
-        <label for="cep">CEP</label>
-        <input type="text" id="cep" name="cep" />
-      </div>
+        <!-- UF / CEP -->
+        <div class="field-row-cep">
+          <label for="uf">UF</label>
+          <select id="uf" name="uf">
+            <option value="">Selecionar</option>
+            {% for sigla in ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
+                             "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
+                             "RS","RO","RR","SC","SP","SE","TO"] %}
+              <option value="{{ sigla }}"
+                {% if cliente_atual and cliente_atual.uf == sigla %}selected{% endif %}>
+                {{ sigla }}
+              </option>
+            {% endfor %}
+          </select>
 
-      <!-- Linha: DDD / Telefone -->
-      <div class="field-row-telefone">
-        <label for="ddd">DDD / Telefone</label>
-        <input type="text" id="ddd" name="ddd" placeholder="19" />
-        <input type="text" id="telefone" name="telefone" />
-      </div>
+          <label for="cep">CEP</label>
+          <input
+            type="text"
+            id="cep"
+            name="cep"
+            value="{{ cliente_atual.cep if cliente_atual else '' }}"
+          />
+        </div>
 
-      <!-- Linha: Email -->
-      <div class="field-row-2">
-        <label for="email">E-mail</label>
-        <input type="text" id="email" name="email" />
-      </div>
+        <!-- DDD / Telefone -->
+        <div class="field-row-telefone">
+          <label for="ddd">DDD / Telefone</label>
+          <input
+            type="text"
+            id="ddd"
+            name="ddd"
+            value="{{ cliente_atual.ddd if cliente_atual else '' }}"
+          />
+          <input
+            type="text"
+            id="telefone"
+            name="telefone"
+            value="{{ cliente_atual.telefone if cliente_atual else '' }}"
+          />
+        </div>
 
-      <!-- Botões -->
-      <div class="clientes-buttons">
-        <button type="button" class="btn-small">Novo</button>
-        <button type="button" class="btn-small">Salvar</button>
-        <button type="button" class="btn-small">Excluir</button>
-        <button type="button" class="btn-small"
-          onclick="window.location.href='{{ url_for('dashboard') }}'">
-          Fechar
-        </button>
-      </div>
+        <!-- Email -->
+        <div class="field-row-2">
+          <label for="email">E-mail</label>
+          <input
+            type="text"
+            id="email"
+            name="email"
+            value="{{ cliente_atual.email if cliente_atual else '' }}"
+          />
+        </div>
+
+        <!-- Botões -->
+        <div class="clientes-buttons">
+          <button type="submit" name="acao" value="novo" class="btn-small">
+            Novo
+          </button>
+
+          <button type="submit" name="acao" value="salvar" class="btn-small">
+            Salvar
+          </button>
+
+          <button
+            type="submit"
+            name="acao"
+            value="excluir"
+            class="btn-small"
+            {% if not cliente_atual %}disabled{% endif %}
+          >
+            Excluir
+          </button>
+
+          <button
+            type="button"
+            class="btn-small"
+            onclick="window.location.href='{{ url_for('dashboard') }}'"
+          >
+            Fechar
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 {% endblock %}

@@ -10,57 +10,125 @@ from flask import (
 import os
 from datetime import datetime
 
+from database import get_session
+from models import Cliente
+
 import config_relatorios
 
-# Pasta temporária para salvar relatórios na nuvem
-TEMP_DIR = os.path.join(os.getcwd(), "temp_reports")
-os.makedirs(TEMP_DIR, exist_ok=True)
-
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave")
+app.secret_key = "super_secret_key"  # TODO trocar depois
 
-# ------------------ AUTENTICAÇÃO SIMPLES ------------------ #
+# =====================================================
+# LOGIN
+# =====================================================
 
-# Por enquanto, credenciais fixas
-VALID_EMAIL = "admin@rlmetais.com.br"
+VALID_EMAIL = "admin@admin.com"
 VALID_PASSWORD = "123456"
 
 
-def login_required(view_func):
-    """Decorator simples para proteger rotas."""
-    from functools import wraps
-
-    @wraps(view_func)
+def login_required(view):
     def wrapped(*args, **kwargs):
-        if "user_email" not in session:
+        if "email" not in session:
             return redirect(url_for("login"))
-        return view_func(*args, **kwargs)
-
+        return view(*args, **kwargs)
+    wrapped.__name__ = view.__name__
     return wrapped
-
-
-@app.route("/")
-def index():
-    if "user_email" in session:
-        return redirect(url_for("dashboard"))
-    return redirect(url_for("login"))
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
-
     if request.method == "POST":
-        email = request.form.get("email", "").strip()
-        password = request.form.get("password", "").strip()
+        email = request.form.get("email")
+        password = request.form.get("password")
 
         if email == VALID_EMAIL and password == VALID_PASSWORD:
-            session["user_email"] = email
+            session["email"] = email
             return redirect(url_for("dashboard"))
         else:
-            error = "E-mail ou senha inválidos."
-
+            error = "Usuário ou senha inválidos"
     return render_template("login.html", error=error)
+
+@app.route("/clientes", methods=["GET", "POST"])
+@login_required
+def clientes_form():
+    """
+    Tela de Cadastro / Edição de Clientes (versão web).
+    - GET: lista clientes e, se tiver cliente_id na querystring, carrega esse cliente no formulário
+    - POST: trata botões Novo / Salvar / Excluir
+    """
+    session_db = get_session()
+
+    try:
+        # ------------------------------
+        # 1) Tratamento das ações (POST)
+        # ------------------------------
+        if request.method == "POST":
+            acao = request.form.get("acao")
+            cliente_id = request.form.get("cliente_id")
+
+            # Campos do formulário
+            dados = {
+                "razao_social": request.form.get("razao_social") or "",
+                "contato": request.form.get("contato") or "",
+                "cnpj": request.form.get("cnpj") or "",
+                "ie": request.form.get("ie") or "",
+                "rua": request.form.get("rua") or "",
+                "numero": request.form.get("numero") or "",
+                "bairro": request.form.get("bairro") or "",
+                "cidade": request.form.get("cidade") or "",
+                "uf": request.form.get("uf") or "",
+                "cep": request.form.get("cep") or "",
+                "ddd": request.form.get("ddd") or "",
+                "telefone": request.form.get("telefone") or "",
+                "email": request.form.get("email") or "",
+            }
+
+            # 👉 NOVO: limpa o formulário (não mexe em banco)
+            if acao == "novo":
+                return redirect(url_for("clientes_form"))
+
+            # 👉 SALVAR: cria ou atualiza
+            if acao == "salvar":
+                if cliente_id:  # atualizar existente
+                    cli = session_db.get(Cliente, int(cliente_id))
+                    if cli:
+                        for campo, valor in dados.items():
+                            setattr(cli, campo, valor)
+                else:  # novo cliente
+                    cli = Cliente(**dados)
+                    session_db.add(cli)
+
+                session_db.commit()
+                # volta para a tela com o cliente recém-salvo selecionado
+                return redirect(url_for("clientes_form", cliente_id=cli.id))
+
+            # 👉 EXCLUIR: apaga o cliente atual
+            if acao == "excluir" and cliente_id:
+                cli = session_db.get(Cliente, int(cliente_id))
+                if cli:
+                    session_db.delete(cli)
+                    session_db.commit()
+                return redirect(url_for("clientes_form"))
+
+        # --------------------------------------
+        # 2) GET normal: carrega lista + cliente
+        # --------------------------------------
+        clientes = session_db.query(Cliente).order_by(Cliente.razao_social).all()
+
+        cliente_atual = None
+        cliente_id_get = request.args.get("cliente_id")
+        if cliente_id_get:
+            cliente_atual = session_db.get(Cliente, int(cliente_id_get))
+
+        return render_template(
+            "clientes.html",
+            clientes=clientes,
+            cliente_atual=cliente_atual,
+        )
+
+    finally:
+        session_db.close()
 
 
 @app.route("/logout")
@@ -69,66 +137,12 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/dashboard")
+# =====================================================
+# DASHBOARD
+# =====================================================
+
+@app.route("/")
 @login_required
 def dashboard():
     return render_template("dashboard.html")
 
-@app.route("/clientes")
-@login_required
-def clientes_form():
-    return render_template("clientes.html")
-
-
-@app.route("/relatorio_end")
-@login_required
-def relatorio_end_form():
-    # Depois vamos colocar o formulário igual ao desktop aqui.
-    return "<h3>Novo Relatório END (LP / PM / US) - em construção</h3>"
-
-
-@app.route("/config_pasta")
-@login_required
-def config_pasta_relatorios():
-    # Essa tela depois vira a configuração da pasta de saída / storage.
-    return "<h3>Definir pasta dos relatórios (em construção)</h3>"
-
-
-# ------------------ GERAÇÃO DE RELATÓRIO ------------------ #
-
-@app.route("/gerar", methods=["POST", "GET"])
-@login_required
-def gerar_relatorio():
-    """
-    Rota que chama a função gerar_relatorio_principal
-    e devolve o arquivo .docx gerado.
-    Aceita POST (a partir do botão do painel) e GET (teste direto).
-    """
-    # Nome do arquivo final
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nome_arquivo_final = f"RELATORIO_{timestamp}.docx"
-    caminho_final = os.path.join(TEMP_DIR, nome_arquivo_final)
-
-    try:
-        # Chama a função que você criou no config_relatorios.py
-        config_relatorios.gerar_relatorio_principal(caminho_final)
-    except Exception as e:
-        return f"Erro na Geração do Relatório: {e}", 500
-
-    try:
-        return send_file(
-            caminho_final,
-            mimetype=(
-                "application/vnd.openxmlformats-officedocument."
-                "wordprocessingml.document"
-            ),
-            as_attachment=True,
-            download_name=nome_arquivo_final,
-        )
-    except Exception as e:
-        return f"Erro ao enviar arquivo: {e}", 500
-
-
-if __name__ == "__main__":
-    # Para rodar localmente se quiser
-    app.run(debug=True)
