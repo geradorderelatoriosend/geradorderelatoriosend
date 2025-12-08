@@ -74,6 +74,26 @@ def logout():
 def dashboard():
     return render_template("dashboard.html")
 
+@app.route("/clientes")
+@login_required
+def clientes_form():
+    # Por enquanto, só pra não quebrar.
+    return "<h3>Tela de Cadastro / Edição de Cliente (em construção)</h3>"
+
+
+@app.route("/relatorio_end")
+@login_required
+def relatorio_end_form():
+    # Depois vamos colocar o formulário igual ao desktop aqui.
+    return "<h3>Novo Relatório END (LP / PM / US) - em construção</h3>"
+
+
+@app.route("/config_pasta")
+@login_required
+def config_pasta_relatorios():
+    # Essa tela depois vira a configuração da pasta de saída / storage.
+    return "<h3>Definir pasta dos relatórios (em construção)</h3>"
+
 
 # ------------------ GERAÇÃO DE RELATÓRIO ------------------ #
 
