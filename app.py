@@ -1,19 +1,12 @@
-from flask import (
-    Flask,
-    send_file,
-    request,
-    render_template,
-    redirect,
-    url_for,
-    session,
-)
+from flask import Flask, render_template, request, redirect, url_for, session, send_file
+from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 from database import get_session
-from models import Cliente
-
-import config_relatorios
+from models import Cliente, TipoRelatorio, EntradaRelatorio
+from reports_ultrassom import generate_ultrassom_report
+from config_relatorios import get_output_dir
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"  # TODO trocar depois
@@ -145,4 +138,151 @@ def logout():
 @login_required
 def dashboard():
     return render_template("dashboard.html")
+
+@app.route("/relatorio/novo")
+@login_required
+def relatorio_novo():
+    # só redireciona para a tela de escolha de tipo
+    return redirect(url_for("relatorio_tipo"))
+
+
+@app.route("/relatorio/tipo", methods=["GET", "POST"])
+@login_required
+def relatorio_tipo():
+    if request.method == "POST":
+        tipo = request.form.get("tipo")
+        if tipo == "US":
+            return redirect(url_for("relatorio_us"))
+        elif tipo == "LP":
+            return redirect(url_for("relatorio_lp"))
+        elif tipo == "PM":
+            return redirect(url_for("relatorio_pm"))
+    return render_template("relatorio_tipo.html")
+
+@app.route("/relatorio/us", methods=["GET", "POST"])
+@login_required
+def relatorio_us():
+    session_db = get_session()
+    try:
+        clientes = session_db.query(Cliente).order_by(Cliente.razao_social.asc()).all()
+
+        if request.method == "POST":
+            cliente_id = request.form.get("cliente_id")
+            numrel = request.form.get("numrel")
+            peca = request.form.get("peca")
+            num_desenho = request.form.get("num_desenho")
+            quantidade = request.form.get("quantidade")
+            local_insp = request.form.get("local_insp")
+            data_insp_str = request.form.get("data_insp")
+            material = request.form.get("material")
+            cond_superficial = request.form.get("cond_superficial")
+            regiao_insp = request.form.get("regiao_insp")
+            espessura = request.form.get("espessura")
+
+            # validações simples
+            if not cliente_id or not numrel:
+                error = "Cliente e Número do Relatório são obrigatórios."
+                return render_template(
+                    "relatorio_us.html",
+                    clientes=clientes,
+                    error=error,
+                )
+
+            # converte data (YYYY-MM-DD vindo do input type=date)
+            data_insp = datetime.strptime(data_insp_str, "%Y-%m-%d").date()
+
+            # busca cliente
+            cliente = session_db.get(Cliente, int(cliente_id))
+
+            # monta endereço
+            endereco_txt = ""
+            if cliente.rua:
+                endereco_txt = cliente.rua
+                if cliente.numero:
+                    endereco_txt += f", {cliente.numero}"
+
+            # salva fotos enviadas em uma pasta (ex: "output/fotos")
+            upload_dir = os.path.join(get_output_dir(), "fotos")
+            os.makedirs(upload_dir, exist_ok=True)
+
+            fotos = {}
+            for campo in ["foto1", "foto2", "foto3"]:
+                file = request.files.get(campo)
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    caminho = os.path.join(upload_dir, filename)
+                    file.save(caminho)
+                    fotos[campo] = caminho
+                else:
+                    fotos[campo] = None
+
+            dados = {
+                "NUMRELATORIO": numrel,
+                "PECA_INSP": peca,
+                "NUM_DESENHO": num_desenho,
+                "QUANTIDADE": quantidade,
+                "LOCAL_INSP": local_insp,
+                "DATA_INSP": data_insp,
+                "MATERIAL": material,
+                "COND_SUPERFICIAL": cond_superficial,
+                "REGIAO_INSP": regiao_insp,
+                "ESPESSURA": espessura,
+                "FOTO_1": fotos["foto1"],
+                "FOTO_2": fotos["foto2"],
+                "FOTO_3": fotos["foto3"],
+            }
+
+            # completa com dados do cliente (EMPRESA, ENDEREÇO etc)
+            dados.update({
+                "EMPRESA": cliente.razao_social or "",
+                "ENDEREÇO": endereco_txt,
+                "BAIRRO": cliente.bairro or "",
+                "CIDADE": cliente.cidade or "",
+                "ESTADO": cliente.uf or "",
+                "CEP": cliente.cep or "",
+                "CONTATO": cliente.contato or "",
+                "DDD": cliente.ddd or "",
+                "FONE": cliente.telefone or "",
+                "EMAIL": cliente.email or "",
+            })
+
+            # pega TipoRelatorio (Ultrassom - US) já cadastrado
+            tipo = session_db.query(TipoRelatorio).filter_by(nome="Ultrassom - US").first()
+            if not tipo:
+                # aqui podemos só dar erro, ou criar automaticamente como no desktop
+                return "Tipo de relatório 'Ultrassom - US' não encontrado.", 500
+
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            template_path = os.path.join(base_dir, "templates", "US_TEMPLATE.docx")
+
+            output_dir = get_output_dir()
+            caminho_docx = generate_ultrassom_report(dados, template_path, output_dir)
+
+            # grava no banco
+            entrada = EntradaRelatorio(
+                cliente_id=cliente.id,
+                tipo_relatorio_id=tipo.id,
+                relatorio_num=numrel,
+                titulo_personalizado=f"Relatório {numrel}-US",
+                dados_json="{}",  # depois podemos salvar o json bonitinho
+                criado_em=datetime.now(),
+                caminho_arquivo_gerado=caminho_docx,
+            )
+            session_db.add(entrada)
+            session_db.commit()
+
+            # manda para página de confirmação / download
+            return render_template(
+                "relatorio_confirmar.html",
+                caminho_docx=os.path.basename(caminho_docx),
+            )
+
+        # GET → exibe formulário
+        return render_template(
+            "relatorio_us.html",
+            clientes=clientes,
+            error=None,
+        )
+    finally:
+        session_db.close()
 

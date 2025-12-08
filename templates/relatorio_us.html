@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Relatório de Ultrassom (US){% endblock %}
+
+{% block content %}
+  <h2>Novo Relatório de Ultrassom (US)</h2>
+
+  {% if error %}
+    <p style="color: red;">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    <label>Cliente:</label>
+    <select name="cliente_id" required>
+      <option value="">Selecione...</option>
+      {% for c in clientes %}
+        <option value="{{ c.id }}">{{ c.razao_social }}</option>
+      {% endfor %}
+    </select>
+    <br><br>
+
+    <label>Número do Relatório:</label>
+    <input type="text" name="numrel" required><br><br>
+
+    <label>Peça Ensaiada:</label>
+    <input type="text" name="peca"><br><br>
+
+    <label>Nº OP / Desenho:</label>
+    <input type="text" name="num_desenho"><br><br>
+
+    <label>Quantidade:</label>
+    <input type="text" name="quantidade"><br><br>
+
+    <label>Local do Ensaio:</label>
+    <input type="text" name="local_insp"><br><br>
+
+    <label>Data do Ensaio:</label>
+    <input type="date" name="data_insp" required><br><br>
+
+    <label>Material:</label>
+    <input type="text" name="material"><br><br>
+
+    <label>Condição da Superfície:</label>
+    <input type="text" name="cond_superficial"><br><br>
+
+    <label>Região Inspecionada:</label>
+    <input type="text" name="regiao_insp"><br><br>
+
+    <label>Espessura:</label>
+    <input type="text" name="espessura"><br><br>
+
+    <label>Foto 1 (Capa):</label>
+    <input type="file" name="foto1" accept="image/*"><br><br>
+
+    <label>Foto 2:</label>
+    <input type="file" name="foto2" accept="image/*"><br><br>
+
+    <label>Foto 3:</label>
+    <input type="file" name="foto3" accept="image/*"><br><br>
+
+    <button type="submit">Gerar Relatório</button>
+  </form>
+
+  <p style="margin-top: 16px;">
+    <a href="{{ url_for('dashboard') }}">Cancelar e voltar</a>
+  </p>
+{% endblock %}
