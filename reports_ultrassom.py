@@ -1,6 +1,9 @@
 import os
 from datetime import date
+
 from docx import Document
+from docxcompose.composer import Composer
+
 from utils_docx import (
     replace_placeholders,
     inserir_foto_por_placeholder,
@@ -8,9 +11,17 @@ from utils_docx import (
     date_por_extenso,
 )
 
+CAPA_TEMPLATE_NAME = "CAPA_TEMPLATE.docx"
+
+
 def _montar_mapping(dados: dict) -> dict:
+    """
+    Monta o dicionário de placeholders -> valores em string,
+    incluindo tratamento de datas e conclusão automática.
+    """
     dados_limpos = dict(dados)
 
+    # Trata data de inspeção
     data_insp = dados_limpos.get("DATA_INSP")
     if isinstance(data_insp, date):
         dados_limpos["DATA_INSP"] = format_date_br(data_insp)
@@ -22,6 +33,7 @@ def _montar_mapping(dados: dict) -> dict:
         dados_limpos["DATA_INSP"] = ""
         dados_limpos["DATA_INSP_EXTENSO"] = ""
 
+    # Conclusão automática
     laudo = dados_limpos.get("LAUDO")
     laudo_ext = dados_limpos.get("LAUDO_EXTENSO") or ""
 
@@ -40,6 +52,7 @@ def _montar_mapping(dados: dict) -> dict:
 
     mapping: dict[str, str] = {}
     for k, v in dados_limpos.items():
+        # Fotos não entram como texto
         if k.startswith("FOTO_"):
             continue
         placeholder = "{{" + k + "}}"
@@ -50,6 +63,13 @@ def _montar_mapping(dados: dict) -> dict:
 
 
 def generate_ultrassom_report(dados: dict, template_path: str, output_dir: str) -> str:
+    """
+    Gera o relatório de Ultrassom (US) com:
+    - CAPA (CAPA_TEMPLATE.docx)
+    - LAUDO (US_TEMPLATE.docx passado em template_path)
+    em um único arquivo .docx.
+    Se a capa não existir, gera apenas o laudo.
+    """
     if not os.path.exists(template_path):
         raise FileNotFoundError(f"Template não encontrado: {template_path}")
 
@@ -61,23 +81,41 @@ def generate_ultrassom_report(dados: dict, template_path: str, output_dir: str) 
 
     mapping = _montar_mapping(dados)
 
-    doc = Document(template_path)
-    replace_placeholders(doc, mapping)
+    # Diretório dos templates (onde está o US_TEMPLATE.docx)
+    base_dir = os.path.dirname(template_path)
+    capa_path = os.path.join(base_dir, CAPA_TEMPLATE_NAME)
 
-    foto1 = dados.get("FOTO_1")
-    if foto1:
-        inserir_foto_por_placeholder(doc, "{{FOTO_1}}", foto1, height_cm=10.0)
+    doc_capa = None
+    if os.path.exists(capa_path):
+        # CAPA usa placeholders próprios, inclusive {{FOTO_1}}
+        doc_capa = Document(capa_path)
+        replace_placeholders(doc_capa, mapping)
+
+        foto1 = dados.get("FOTO_1")
+        if foto1:
+            inserir_foto_por_placeholder(doc_capa, "{{FOTO_1}}", foto1, height_cm=10.0)
+
+    # LAUDO US
+    doc_laudo = Document(template_path)
+    replace_placeholders(doc_laudo, mapping)
 
     foto2 = dados.get("FOTO_2")
     if foto2:
-        inserir_foto_por_placeholder(doc, "{{FOTO_2}}", foto2, height_cm=4.0)
+        inserir_foto_por_placeholder(doc_laudo, "{{FOTO_2}}", foto2, height_cm=4.0)
 
     foto3 = dados.get("FOTO_3")
     if foto3:
-        inserir_foto_por_placeholder(doc, "{{FOTO_3}}", foto3, height_cm=4.0)
+        inserir_foto_por_placeholder(doc_laudo, "{{FOTO_3}}", foto3, height_cm=4.0)
 
     file_name = f"Relatório {numrel}-US.docx"
     output_path = os.path.join(output_dir, file_name)
 
-    doc.save(output_path)
+    # Junta capa + laudo, se a capa existir
+    if doc_capa is not None:
+        composer = Composer(doc_capa)
+        composer.append(doc_laudo)
+        composer.save(output_path)
+    else:
+        doc_laudo.save(output_path)
+
     return output_path
