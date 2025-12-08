@@ -1,30 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Painel - RL Metais{% endblock %}
+{% block title %}RL Metais - Início{% endblock %}
 
 {% block content %}
-  <h2>Painel de Relatórios END</h2>
-  <p>
-    Bem-vindo(a)! Aqui você poderá gerar relatórios END pela nuvem.
-    Nesta primeira versão, temos um botão de teste para gerar um relatório
-    de demonstração.
-  </p>
+  <div class="logo">
+    <!-- Aqui depois podemos trocar por imagem do seu logo -->
+    <span>RL Metais - Relatórios END</span>
+  </div>
 
-  <div class="grid-buttons" style="margin-top: 24px;">
-    <form method="post" action="{{ url_for('gerar_relatorio') }}">
-      <button type="submit" class="btn btn-block">
-        Gerar Relatório END (DEMO)
-      </button>
-    </form>
+  <div class="mb-3">
+    <button
+      type="button"
+      class="btn-menu"
+      onclick="window.location.href='{{ url_for('clientes_form') }}'"
+    >
+      Cadastrar / Editar Cliente
+    </button>
 
-    <!-- Lugares reservados para future features -->
-    <button class="btn btn-block secondary" disabled>
-      Novo Relatório LP (em breve)
+    <button
+      type="button"
+      class="btn-menu"
+      onclick="window.location.href='{{ url_for('relatorio_end_form') }}'"
+    >
+      Novo Relatório END (LP / PM / US)
     </button>
-    <button class="btn btn-block secondary" disabled>
-      Novo Relatório PM (em breve)
-    </button>
-    <button class="btn btn-block secondary" disabled>
-      Novo Relatório US (em breve)
+
+    <button
+      type="button"
+      class="btn-menu"
+      onclick="window.location.href='{{ url_for('config_pasta_relatorios') }}'"
+    >
+      Definir pasta dos relatórios
     </button>
   </div>
 {% endblock %}
