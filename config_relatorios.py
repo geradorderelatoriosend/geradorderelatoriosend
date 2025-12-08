@@ -30,6 +30,10 @@ def get_output_dir() -> str:
     cfg = _carregar_config()
     path = cfg.get("output_dir") or DEFAULT_OUTPUT_DIR
 
+    # Se estiver em Linux (Render) e o caminho tiver formato de Windows, ignora
+    if os.name != "nt" and (":" in path or "\\" in path):
+        path = DEFAULT_OUTPUT_DIR
+
     # Se for caminho relativo, converte para absoluto em relação à BASE_DIR
     if not os.path.isabs(path):
         path = os.path.abspath(os.path.join(BASE_DIR, path))
