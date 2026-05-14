@@ -1,7 +1,7 @@
 
 import os
 import json
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # Nome do arquivo do banco de dados
@@ -11,13 +11,16 @@ DB_FILE = "relatorios_end.db"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Pasta de dados do usuário (ex.: C:\Users\Aline\AppData\Local\RLMetais)
-APPDATA_DIR = os.path.join(
+APPDATA_DIR = os.environ.get("RL_METAIS_DATA_DIR") or os.path.join(
     os.environ.get("LOCALAPPDATA", BASE_DIR),
     "RLMetais"
 )
 os.makedirs(APPDATA_DIR, exist_ok=True)
 
 DB_PATH = os.path.join(APPDATA_DIR, DB_FILE)
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Migra um banco antigo que esteja na pasta da aplicação, se existir
 LEGACY_DB_PATH = os.path.join(BASE_DIR, DB_FILE)
@@ -30,7 +33,7 @@ if os.path.exists(LEGACY_DB_PATH) and not os.path.exists(DB_PATH):
 
 # Engine do SQLAlchemy
 Engine = create_engine(
-    f"sqlite:///{DB_PATH}",
+    DATABASE_URL or f"sqlite:///{DB_PATH}",
     echo=False,
     future=True,
 )
@@ -48,6 +51,7 @@ def init_db() -> None:
 
     # Cria todas as tabelas
     Base.metadata.create_all(Engine)
+    _run_sqlite_light_migrations()
 
     # Garante o cadastro do tipo de relatório Ultrassom
     from sqlalchemy import select
@@ -102,3 +106,20 @@ def get_session():
     return SessionLocal()
 # garantir registro da capa
 CAPA_TEMPLATE_PATH = os.path.join("templates", "CAPA_TEMPLATE.docx")
+
+
+def _run_sqlite_light_migrations() -> None:
+    """Adiciona colunas novas no SQLite local usado pelo MVP web."""
+    inspector = inspect(Engine)
+    table_names = set(inspector.get_table_names())
+
+    with Engine.begin() as conn:
+        if "clientes" in table_names:
+            columns = {column["name"] for column in inspector.get_columns("clientes")}
+            if "organization_id" not in columns:
+                conn.execute(text("ALTER TABLE clientes ADD COLUMN organization_id INTEGER"))
+
+        if "entradas_relatorio" in table_names:
+            columns = {column["name"] for column in inspector.get_columns("entradas_relatorio")}
+            if "organization_id" not in columns:
+                conn.execute(text("ALTER TABLE entradas_relatorio ADD COLUMN organization_id INTEGER"))

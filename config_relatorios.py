@@ -6,7 +6,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(BASE_DIR, "config_relatorios.json")
 
 # Pasta padrão (se o usuário não configurar outra)
-DEFAULT_OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+DEFAULT_OUTPUT_DIR = os.environ.get("RL_METAIS_OUTPUT_DIR") or os.path.join(BASE_DIR, "output")
 
 
 def _carregar_config() -> dict:

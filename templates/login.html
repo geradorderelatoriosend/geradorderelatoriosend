@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-
-<h2>Acesso ao Sistema</h2>
-
-<form action="/login" method="post">
-
-    <input type="email" name="email" placeholder="E-mail"><br>
-    <input type="password" name="password" placeholder="Senha"><br>
-
-    <button type="submit">Entrar</button>
-
-    {% if error %}
-        <p style="color:red">{{error}}</p>
-    {% endif %}
-</form>
-
+<section class="auth panel">
+  <form class="form" method="post">
+    <div>
+      <p class="eyebrow">Acesso</p>
+      <h1>Entrar</h1>
+    </div>
+    <label>E-mail
+      <input name="email" type="email" required autofocus>
+    </label>
+    <label>Senha
+      <input name="password" type="password" required>
+    </label>
+    <button class="button primary" type="submit">Entrar</button>
+  </form>
+</section>
 {% endblock %}

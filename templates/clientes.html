@@ -1,309 +1,139 @@
 {% extends "base.html" %}
-{% block title %}Cadastro de Clientes - RL Metais{% endblock %}
-
-{% block extra_head %}
-<style>
-  .clientes-container {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 16px;
-  }
-
-  .clientes-list {
-    border: 1px solid #a0a0a0;
-    background-color: #ffffff;
-    padding: 8px;
-    height: 420px;
-    overflow-y: auto;
-    font-size: 13px;
-  }
-
-  .clientes-list h4 {
-    font-size: 14px;
-    margin-top: 0;
-    margin-bottom: 8px;
-  }
-
-  .cliente-item {
-    display: block;
-    padding: 4px 6px;
-    border-bottom: 1px solid #e0e0e0;
-    cursor: default;
-    text-decoration: none;
-    color: #000000;
-    font-size: 13px;
-  }
-
-  .cliente-item:hover {
-    background-color: #f0f0f0;
-  }
-
-  .cliente-item.selected {
-    background-color: #d0e0ff;
-  }
-
-  .clientes-form {
-    border: 1px solid #a0a0a0;
-    background-color: #ffffff;
-    padding: 12px 16px;
-    font-size: 13px;
-  }
-
-  .field-row,
-  .field-row-2,
-  .field-row-3,
-  .field-row-cep,
-  .field-row-telefone {
-    margin-bottom: 6px;
-    display: grid;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .field-row {
-    grid-template-columns: 110px 1fr 60px 1fr;
-  }
-
-  .field-row-2 {
-    grid-template-columns: 110px 1fr;
-  }
-
-  .field-row-3 {
-    grid-template-columns: 110px 1fr 60px 1fr;
-  }
-
-  .field-row-cep {
-    grid-template-columns: 110px 120px 40px 1fr;
-  }
-
-  .field-row-telefone {
-    grid-template-columns: 110px 60px 1fr;
-  }
-
-  label {
-    font-size: 12px;
-  }
-
-  input,
-  select {
-    font-size: 12px;
-    padding: 3px 4px;
-    border: 1px solid #a0a0a0;
-    border-radius: 2px;
-  }
-
-  .clientes-buttons {
-    margin-top: 12px;
-    text-align: right;
-  }
-
-  .btn-small {
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 2px;
-    border: 1px solid #808080;
-    background-color: #e0e0e0;
-    margin-left: 4px;
-  }
-
-  .btn-small:hover {
-    background-color: #d4d4d4;
-  }
-</style>
-{% endblock %}
-
 {% block content %}
-  <h3 style="font-size: 14px; margin-top: 0; margin-bottom: 10px;">
-    Cadastro / Edição de Cliente
-  </h3>
-
-  <div class="clientes-container">
-    <!-- LADO ESQUERDO: LISTA DE CLIENTES -->
-    <div class="clientes-list">
-      <h4>Clientes</h4>
-
-      {% for c in clientes %}
-        <a
-          href="{{ url_for('clientes_form', cliente_id=c.id) }}"
-          class="cliente-item {% if cliente_atual and c.id == cliente_atual.id %}selected{% endif %}"
-        >
-          {{ c.razao_social }}
-        </a>
-      {% else %}
-        <div class="cliente-item">Nenhum cliente cadastrado</div>
-      {% endfor %}
+<section class="split">
+  <form class="panel form" method="post" action="{{ url_for('salvar_cliente') }}" id="cliente-form">
+    <div class="section-title">
+      <h1>{{ "Alterar cliente" if selected else "Novo cliente" }}</h1>
+      {% if selected %}
+        <a href="{{ url_for('clientes') }}">Novo cadastro</a>
+      {% endif %}
     </div>
 
-    <!-- LADO DIREITO: FORMULÁRIO -->
-    <div class="clientes-form">
-      <form method="post">
-        <!-- ID oculto para edição -->
-        <input
-          type="hidden"
-          name="cliente_id"
-          value="{{ cliente_atual.id if cliente_atual else '' }}"
-        />
+    <input type="hidden" name="cliente_id" value="{{ selected.id if selected else '' }}">
 
-        <!-- Razão Social -->
-        <div class="field-row-2">
-          <label for="razao_social">Razão Social</label>
-          <input
-            type="text"
-            id="razao_social"
-            name="razao_social"
-            value="{{ cliente_atual.razao_social if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- Contato -->
-        <div class="field-row-2">
-          <label for="contato">Contato</label>
-          <input
-            type="text"
-            id="contato"
-            name="contato"
-            value="{{ cliente_atual.contato if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- CNPJ / IE -->
-        <div class="field-row">
-          <label for="cnpj">CNPJ</label>
-          <input
-            type="text"
-            id="cnpj"
-            name="cnpj"
-            value="{{ cliente_atual.cnpj if cliente_atual else '' }}"
-          />
-
-          <label for="ie">IE</label>
-          <input
-            type="text"
-            id="ie"
-            name="ie"
-            value="{{ cliente_atual.ie if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- Rua / Número -->
-        <div class="field-row">
-          <label for="rua">Rua</label>
-          <input
-            type="text"
-            id="rua"
-            name="rua"
-            value="{{ cliente_atual.rua if cliente_atual else '' }}"
-          />
-
-          <label for="numero">Número</label>
-          <input
-            type="text"
-            id="numero"
-            name="numero"
-            value="{{ cliente_atual.numero if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- Bairro / Cidade -->
-        <div class="field-row">
-          <label for="bairro">Bairro</label>
-          <input
-            type="text"
-            id="bairro"
-            name="bairro"
-            value="{{ cliente_atual.bairro if cliente_atual else '' }}"
-          />
-
-          <label for="cidade">Cidade</label>
-          <input
-            type="text"
-            id="cidade"
-            name="cidade"
-            value="{{ cliente_atual.cidade if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- UF / CEP -->
-        <div class="field-row-cep">
-          <label for="uf">UF</label>
-          <select id="uf" name="uf">
-            <option value="">Selecionar</option>
-            {% for sigla in ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
-                             "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
-                             "RS","RO","RR","SC","SP","SE","TO"] %}
-              <option value="{{ sigla }}"
-                {% if cliente_atual and cliente_atual.uf == sigla %}selected{% endif %}>
-                {{ sigla }}
-              </option>
-            {% endfor %}
-          </select>
-
-          <label for="cep">CEP</label>
-          <input
-            type="text"
-            id="cep"
-            name="cep"
-            value="{{ cliente_atual.cep if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- DDD / Telefone -->
-        <div class="field-row-telefone">
-          <label for="ddd">DDD / Telefone</label>
-          <input
-            type="text"
-            id="ddd"
-            name="ddd"
-            value="{{ cliente_atual.ddd if cliente_atual else '' }}"
-          />
-          <input
-            type="text"
-            id="telefone"
-            name="telefone"
-            value="{{ cliente_atual.telefone if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- Email -->
-        <div class="field-row-2">
-          <label for="email">E-mail</label>
-          <input
-            type="text"
-            id="email"
-            name="email"
-            value="{{ cliente_atual.email if cliente_atual else '' }}"
-          />
-        </div>
-
-        <!-- Botões -->
-        <div class="clientes-buttons">
-          <button type="submit" name="acao" value="novo" class="btn-small">
-            Novo
-          </button>
-
-          <button type="submit" name="acao" value="salvar" class="btn-small">
-            Salvar
-          </button>
-
-          <button
-            type="submit"
-            name="acao"
-            value="excluir"
-            class="btn-small"
-            {% if not cliente_atual %}disabled{% endif %}
-          >
-            Excluir
-          </button>
-
-          <button
-            type="button"
-            class="btn-small"
-            onclick="window.location.href='{{ url_for('dashboard') }}'"
-          >
-            Fechar
-          </button>
-        </div>
-      </form>
+    <div class="grid two">
+      <label>CNPJ
+        <input name="cnpj" id="cnpj" value="{{ selected.cnpj if selected else '' }}">
+      </label>
+      <label>&nbsp;
+        <button class="button" type="button" id="buscar-cnpj">Buscar CNPJ</button>
+      </label>
     </div>
-  </div>
+
+    <label>Razão social *
+      <input name="razao_social" id="razao_social" required value="{{ selected.razao_social if selected else '' }}">
+    </label>
+    <label>Contato
+      <input name="contato" id="contato" value="{{ selected.contato if selected else '' }}">
+    </label>
+    <label>Inscrição estadual
+      <input name="ie" id="ie" value="{{ selected.ie if selected else '' }}">
+    </label>
+
+    <div class="grid two">
+      <label>Rua
+        <input name="rua" id="rua" value="{{ selected.rua if selected else '' }}">
+      </label>
+      <label>Número
+        <input name="numero" id="numero" value="{{ selected.numero if selected else '' }}">
+      </label>
+    </div>
+
+    <div class="grid three">
+      <label>Bairro
+        <input name="bairro" id="bairro" value="{{ selected.bairro if selected else '' }}">
+      </label>
+      <label>Cidade
+        <input name="cidade" id="cidade" value="{{ selected.cidade if selected else '' }}">
+      </label>
+      <label>UF
+        <input name="uf" id="uf" maxlength="2" value="{{ selected.uf if selected else '' }}">
+      </label>
+    </div>
+
+    <div class="grid three">
+      <label>CEP
+        <input name="cep" id="cep" value="{{ selected.cep if selected else '' }}">
+      </label>
+      <label>DDD
+        <input name="ddd" id="ddd" value="{{ selected.ddd if selected else '' }}">
+      </label>
+      <label>Telefone
+        <input name="telefone" id="telefone" value="{{ selected.telefone if selected else '' }}">
+      </label>
+    </div>
+
+    <label>E-mail
+      <input name="email" id="email" type="email" value="{{ selected.email if selected else '' }}">
+    </label>
+
+    <div class="actions">
+      <button class="button primary" type="submit" name="action" value="save">Salvar</button>
+      {% if selected %}
+        <button class="button danger" type="submit" name="action" value="delete" onclick="return confirm('Deseja excluir este cliente?')">Excluir</button>
+      {% endif %}
+    </div>
+    <p class="form-note" id="cnpj-status" hidden></p>
+  </form>
+
+  <section class="panel client-panel">
+    <div class="section-title">
+      <h2>Clientes cadastrados</h2>
+      <span>{{ clientes|length }}</span>
+    </div>
+    {% if clientes %}
+      <div class="client-list">
+        {% for cliente in clientes %}
+          <a class="client-item {% if selected and selected.id == cliente.id %}active{% endif %}" href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}">
+            <strong>{{ cliente.razao_social }}</strong>
+            <span>{{ cliente.cnpj or 'CNPJ não informado' }}</span>
+            <small>{{ cliente.cidade or 'Cidade não informada' }}{% if cliente.uf %} / {{ cliente.uf }}{% endif %}</small>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Nenhum cliente cadastrado.</p>
+    {% endif %}
+  </section>
+</section>
+
+<script>
+  const button = document.getElementById("buscar-cnpj");
+  const statusBox = document.getElementById("cnpj-status");
+
+  function setValue(id, value) {
+    const field = document.getElementById(id);
+    if (field && value) field.value = value;
+  }
+
+  button?.addEventListener("click", async () => {
+    const cnpj = document.getElementById("cnpj").value.replace(/\D/g, "");
+    statusBox.hidden = false;
+    statusBox.textContent = "Consultando CNPJ...";
+
+    try {
+      const response = await fetch(`/api/cnpj/${cnpj}`);
+      const data = await response.json();
+      if (!response.ok) {
+        statusBox.textContent = data.error || "Não foi possível consultar o CNPJ.";
+        return;
+      }
+
+      setValue("razao_social", data.razao_social);
+      setValue("cnpj", data.cnpj);
+      setValue("rua", data.rua);
+      setValue("numero", data.numero);
+      setValue("bairro", data.bairro);
+      setValue("cidade", data.cidade);
+      setValue("uf", data.uf);
+      setValue("cep", data.cep);
+      setValue("ddd", data.ddd);
+      setValue("telefone", data.telefone);
+      setValue("email", data.email);
+      statusBox.textContent = "Dados preenchidos pelo CNPJ.";
+    } catch (error) {
+      statusBox.textContent = "Serviço de CNPJ indisponível no momento.";
+    }
+  });
+</script>
 {% endblock %}
